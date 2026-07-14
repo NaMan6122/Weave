@@ -1,0 +1,22 @@
+{
+  "name": "@weave/db",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.35.0",
+    "postgres": "^3.4.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.28.0",
+    "typescript": "^5.5.0"
+  }
+}
