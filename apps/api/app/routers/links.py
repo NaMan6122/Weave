@@ -1,13 +1,18 @@
+import csv
+import io
 import uuid
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, get_db, require_admin
 from app.models.domain import Domain
 from app.models.link import Link
+from app.models.page import Page
 from app.schemas.link import LinkResponse
 from app.services.crawler import LinkValidatorService
 from app.services.matching import MatchingService
@@ -137,3 +142,64 @@ async def validate_all_links(
     summary = await LinkValidatorService.validate_all_links(db)
     await db.commit()
     return summary
+
+
+@router.get("/export")
+async def export_links(
+    domain_id: uuid.UUID | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    user: Any = Depends(get_current_user),
+) -> StreamingResponse:
+    if user.plan in ("free", "starter"):
+        raise HTTPException(status_code=403, detail="CSV export requires Pro or Agency plan")
+
+    result = await db.execute(select(Domain.id).where(Domain.user_id == user.id))
+    domain_ids = [row[0] for row in result.all()]
+    if not domain_ids:
+        domain_ids = [uuid.UUID(int=0)]
+
+    conditions = [
+        (Link.source_domain_id.in_(domain_ids))
+        | (Link.target_domain_id.in_(domain_ids))
+    ]
+    if domain_id:
+        conditions.append(
+            (Link.source_domain_id == domain_id) | (Link.target_domain_id == domain_id)
+        )
+
+    from sqlalchemy import and_
+    stmt = select(Link).where(and_(*conditions)).order_by(Link.created_at.desc())
+    result = await db.execute(stmt)
+    links = list(result.scalars().all())
+
+    page_cache: dict = {}
+    for link in links:
+        for pid in (link.source_page_id, link.target_page_id):
+            if pid not in page_cache:
+                pr = await db.execute(select(Page).where(Page.id == pid))
+                page_cache[pid] = pr.scalar_one_or_none()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["date", "source_url", "target_url", "anchor_text", "match_score", "status", "credits_earned", "credits_spent"])
+    for link in links:
+        source_url = page_cache.get(link.source_page_id)
+        target_url = page_cache.get(link.target_page_id)
+        writer.writerow([
+            link.created_at.isoformat() if link.created_at else "",
+            source_url.url if source_url else "",
+            target_url.url if target_url else "",
+            link.anchor_text,
+            float(link.match_score) if link.match_score else "",
+            link.status,
+            float(link.credits_earned) if link.credits_earned else "",
+            float(link.credits_spent) if link.credits_spent else "",
+        ])
+
+    output.seek(0)
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="weave-links-{date_str}.csv"'},
+    )

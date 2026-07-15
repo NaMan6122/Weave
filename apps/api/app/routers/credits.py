@@ -1,7 +1,11 @@
+import csv
+import io
 import uuid
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -135,4 +139,53 @@ async def transfer_credits(
         from_balance=from_acc.balance,
         to_balance=to_acc.balance,
         amount_transferred=body.amount,
+    )
+
+
+@router.get("/export")
+async def export_credits(
+    domain_id: uuid.UUID | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    user: Any = Depends(get_current_user),
+) -> StreamingResponse:
+    if user.plan in ("free", "starter"):
+        raise HTTPException(status_code=403, detail="CSV export requires Pro or Agency plan")
+
+    result = await db.execute(select(Domain).where(Domain.user_id == user.id))
+    domains = list(result.scalars().all())
+    if not domains:
+        raise HTTPException(status_code=404, detail="No domains found")
+
+    target_domains = [d for d in domains if domain_id is None or d.id == domain_id]
+    if not target_domains:
+        raise HTTPException(status_code=404, detail="Domain not found")
+
+    all_txns = []
+    for d in target_domains:
+        try:
+            txns = await CreditService.get_transaction_history(db, d.id, limit=200, offset=0)
+            all_txns.extend(txns)
+        except ValueError:
+            pass
+
+    all_txns.sort(key=lambda t: t.created_at, reverse=True)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["date", "type", "amount", "description", "link_id"])
+    for txn in all_txns:
+        writer.writerow([
+            txn.created_at.isoformat() if txn.created_at else "",
+            txn.type,
+            float(txn.amount),
+            txn.description or "",
+            str(txn.link_id) if txn.link_id else "",
+        ])
+
+    output.seek(0)
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="weave-credits-{date_str}.csv"'},
     )

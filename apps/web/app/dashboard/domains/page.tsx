@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getBackendToken } from "@/lib/auth";
 import { WeaveClient, Domain } from "@/lib/api-client";
+import { ExportButton } from "@/components/dashboard/export-button";
 
 export const metadata: Metadata = {
   title: "Domains",
@@ -21,9 +22,14 @@ export default async function DomainsPage() {
   const client = WeaveClient.authenticated(token);
 
   let domains: Domain[] = [];
+  let plan = "free";
   try {
-    const res = await client.listDomains();
+    const [res, me] = await Promise.all([
+      client.listDomains(),
+      client.getMe(),
+    ]);
     domains = res.domains;
+    plan = me.plan || "free";
   } catch {
     // API not available
   }
@@ -32,12 +38,15 @@ export default async function DomainsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Domains</h1>
-        <a
+        <div className="flex items-center gap-2">
+          <ExportButton endpoint="/api/v1/domains/export" label="Export CSV" token={token} plan={plan} />
+          <a
           href="/dashboard/domains/add"
           className="rounded-lg bg-white text-black px-4 py-2 text-sm font-medium hover:bg-neutral-200"
         >
           Add Domain
         </a>
+        </div>
       </div>
 
       <div className="rounded-xl border border-neutral-800 overflow-hidden">

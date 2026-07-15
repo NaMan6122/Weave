@@ -1,10 +1,14 @@
 """Domain registration, verification, and vetting endpoints."""
 
+import csv
+import io
 import uuid
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -156,3 +160,37 @@ async def get_domain_status_by_name(
     if not domain:
         raise HTTPException(status_code=404, detail="Domain not found")
     return _domain_to_response(domain)
+
+
+@router.get("/export")
+async def export_domains(
+    db: AsyncSession = Depends(get_db),
+    user: Any = Depends(get_current_user),
+) -> StreamingResponse:
+    if user.plan in ("free", "starter"):
+        raise HTTPException(status_code=403, detail="CSV export requires Pro or Agency plan")
+
+    domains = await DomainService.list_domains(db, user.id)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["domain", "niche", "language", "dr", "wts", "status", "verified", "created_at"])
+    for d in domains:
+        writer.writerow([
+            d.domain,
+            d.niche or "",
+            d.language or "",
+            float(d.dr) if d.dr else "",
+            float(d.wts) if d.wts else "",
+            d.status,
+            d.verified,
+            d.created_at.isoformat() if d.created_at else "",
+        ])
+
+    output.seek(0)
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="weave-domains-{date_str}.csv"'},
+    )

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getBackendToken } from "@/lib/auth";
 import { WeaveClient, CreditTransaction } from "@/lib/api-client";
+import { ExportButton } from "@/components/dashboard/export-button";
 
 export const metadata: Metadata = {
   title: "Credits",
@@ -26,9 +27,14 @@ export default async function CreditsPage() {
   let lifetimeSpent = 0;
   let transactions: CreditTransaction[] = [];
   let totalTransactions = 0;
+  let plan = "free";
 
   try {
-    const domainsRes = await client.listDomains();
+    const [domainsRes, me] = await Promise.all([
+      client.listDomains(),
+      client.getMe(),
+    ]);
+    plan = me.plan || "free";
     if (domainsRes.domains.length > 0) {
       const firstDomain = domainsRes.domains[0];
       const [bal, history] = await Promise.all([
@@ -47,7 +53,10 @@ export default async function CreditsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Credits</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Credits</h1>
+        <ExportButton endpoint="/api/v1/credits/export" label="Export CSV" token={token} plan={plan} />
+      </div>
 
       {/* Balance card */}
       <div className="rounded-xl border border-neutral-800 p-6 mb-6">
