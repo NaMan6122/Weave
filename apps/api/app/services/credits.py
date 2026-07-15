@@ -137,6 +137,20 @@ class CreditService:
         )
         db.add(txn)
         await db.flush()
+
+        # Low balance notification (spec-003 §4)
+        if account.balance < LOW_BALANCE_THRESHOLD:
+            import asyncio
+            db_copy = db
+            async def _fire_low_balance():
+                from app.workers.webhook_worker import run_credits_low
+                await run_credits_low({
+                    "domain_id": str(domain_id),
+                    "balance": float(account.balance),
+                    "threshold": float(LOW_BALANCE_THRESHOLD),
+                })
+            asyncio.create_task(_fire_low_balance())
+
         return txn
 
     @staticmethod
