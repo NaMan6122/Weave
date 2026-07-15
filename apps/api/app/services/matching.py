@@ -364,20 +364,30 @@ class MatchingService:
             f"Link placed: {source_url} -> {target_url}",
         )
 
-        # Auto-assign to pending triangle if applicable (spec-008)
+        # Auto-assign to pending triangle or form new one (spec-008)
         from app.services.triangulation import TriangulationService
         target_domain_id = target_page.domain_id
         pending = await TriangulationService.find_pending_triangles(db, source_domain_id)
+        assigned = False
         for triangle in pending:
             if triangle.domain_a_id == source_domain_id and triangle.domain_b_id == target_domain_id and triangle.link_ab_id is None:
                 await TriangulationService.assign_link_to_triangle(db, link.id, triangle.id, "ab")
+                assigned = True
                 break
             elif triangle.domain_b_id == source_domain_id and triangle.domain_c_id == target_domain_id and triangle.link_bc_id is None:
                 await TriangulationService.assign_link_to_triangle(db, link.id, triangle.id, "bc")
+                assigned = True
                 break
             elif triangle.domain_c_id == source_domain_id and triangle.domain_a_id == target_domain_id and triangle.link_ca_id is None:
                 await TriangulationService.assign_link_to_triangle(db, link.id, triangle.id, "ca")
+                assigned = True
                 break
+
+        # If no existing triangle matched, try to form a new one for A->B
+        if not assigned:
+            triangle = await TriangulationService.form_triangle(db, source_domain_id, target_domain_id)
+            if triangle is not None:
+                await TriangulationService.assign_link_to_triangle(db, link.id, triangle.id, "ab")
 
         return link
 
