@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getBackendToken } from "@/lib/auth";
 import { WeaveClient, NetworkSite } from "@/lib/api-client";
+import { DrBadge } from "@/components/ui/dr-badge";
 
 export const metadata: Metadata = {
   title: "Network",
@@ -59,8 +60,8 @@ export default async function NetworkPage() {
 
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div>
-                  <p className="text-neutral-500">DR</p>
-                  <p className="font-semibold">{site.dr}</p>
+                  <p className="text-neutral-500 mb-1">DR</p>
+                  <DrBadge dr={site.dr} />
                 </div>
                 <div>
                   <p className="text-neutral-500">Traffic</p>

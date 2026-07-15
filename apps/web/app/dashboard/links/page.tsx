@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { getBackendToken } from "@/lib/auth";
 import { WeaveClient, Link } from "@/lib/api-client";
+import { StatusPill } from "@/components/ui/status-pill";
+import { ExportButton } from "@/components/dashboard/export-button";
 
 export const metadata: Metadata = {
   title: "Links",
@@ -42,16 +44,25 @@ export default async function LinksPage({
 
   const activeTab = filterStatus || "all";
   let links: Link[] = [];
+  let plan = "free";
 
   try {
-    links = await client.listLinks(activeTab === "all" ? undefined : activeTab);
+    const [linksData, me] = await Promise.all([
+      client.listLinks(activeTab === "all" ? undefined : activeTab),
+      client.getMe(),
+    ]);
+    links = linksData;
+    plan = me.plan || "free";
   } catch {
     // API not available
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Links</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Links</h1>
+        <ExportButton endpoint="/api/v1/links/export" label="Export CSV" token={token} plan={plan} />
+      </div>
 
       {/* Filter tabs */}
       <div className="flex gap-1 mb-6 border-b border-neutral-800">
@@ -118,11 +129,7 @@ export default async function LinksPage({
                   </td>
                   <td className="px-4 py-3">{link.credits}</td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[link.status]}`}
-                    >
-                      {link.status}
-                    </span>
+                    <StatusPill status={link.status} />
                   </td>
                 </tr>
               ))
