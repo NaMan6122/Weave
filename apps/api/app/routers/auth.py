@@ -6,11 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_user, get_db
 from app.models.user import User
 from app.schemas.auth import (
+    AccountDeleteRequest,
     ApiKeyInfoResponse,
     ApiKeyResponse,
     AuthResponse,
     LoginRequest,
     OAuthCallbackRequest,
+    ProfileUpdateRequest,
     RegisterRequest,
     UserResponse,
 )
@@ -91,3 +93,28 @@ async def get_api_key_info(
     if user.api_key:
         return ApiKeyInfoResponse(masked_key="..." + user.api_key[-8:], has_key=True)
     return ApiKeyInfoResponse(masked_key=None, has_key=False)
+
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(
+    body: ProfileUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> UserResponse:
+    if not body.name or not body.name.strip():
+        raise HTTPException(status_code=422, detail="Name is required")
+    updated = await AuthService.update_profile(db, user.id, body.name.strip())
+    return UserResponse.model_validate(updated)
+
+
+@router.delete("/account", status_code=200)
+async def delete_account(
+    body: AccountDeleteRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    try:
+        await AuthService.delete_account(db, user.id, body.email_confirmation)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Email confirmation does not match")
+    return {"message": "Account deleted"}

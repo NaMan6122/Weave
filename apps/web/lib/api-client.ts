@@ -87,6 +87,16 @@ export interface NetworkBrowseResponse {
   page_size: number;
 }
 
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  metadata: Record<string, string>;
+  created_at: string;
+}
+
 class ApiError extends Error {
   constructor(
     public status: number,
@@ -218,8 +228,22 @@ export class WeaveClient {
   }
 
   // Auth
-  async getMe(): Promise<{ id: string; email: string; name: string; avatar_url: string }> {
+  async getMe(): Promise<{ id: string; email: string; name: string; avatar_url: string; plan: string }> {
     return this.request("/api/v1/auth/me");
+  }
+
+  async updateProfile(name: string): Promise<{ id: string; email: string; name: string; plan: string }> {
+    return this.request("/api/v1/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  async deleteAccount(emailConfirmation: string): Promise<{ message: string }> {
+    return this.request("/api/v1/auth/account", {
+      method: "DELETE",
+      body: JSON.stringify({ email_confirmation: emailConfirmation }),
+    });
   }
 
   async generateApiKey(): Promise<{ key: string }> {
@@ -254,6 +278,32 @@ export class WeaveClient {
     if (params?.page_size != null) query.set("page_size", String(params.page_size));
     const qs = query.toString();
     return this.request(`/api/v1/network/${qs ? `?${qs}` : ""}`);
+  }
+
+  // Notifications
+  async getNotifications(): Promise<{ notifications: Notification[]; unread_count: number }> {
+    return this.request("/api/v1/notifications/");
+  }
+
+  async markNotificationRead(id: string): Promise<{ id: string; read: boolean }> {
+    return this.request(`/api/v1/notifications/${id}/read`, { method: "POST" });
+  }
+
+  async markAllNotificationsRead(): Promise<{ marked: number }> {
+    return this.request("/api/v1/notifications/read-all", { method: "POST" });
+  }
+
+  // Analytics
+  async getMetrics(domainId: string): Promise<{ history: Array<{ recorded_at: string; dr: number | null; da: number | null; wts: number | null; organic_traffic: number | null; spam_score: number | null }> }> {
+    return this.request(`/api/v1/analytics/metrics/${domainId}`);
+  }
+
+  async getLinkSeries(domainId: string): Promise<{ series: Array<{ date: string; new_that_week: number; cumulative: number }> }> {
+    return this.request(`/api/v1/analytics/links/${domainId}`);
+  }
+
+  async getCreditSeries(domainId: string): Promise<{ series: Array<{ week: string; earned: number; spent: number }> }> {
+    return this.request(`/api/v1/analytics/credits/${domainId}`);
   }
 }
 

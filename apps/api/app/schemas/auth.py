@@ -44,3 +44,11 @@ class ApiKeyResponse(BaseModel):
 class ApiKeyInfoResponse(BaseModel):
     masked_key: str | None = None
     has_key: bool
+
+
+class ProfileUpdateRequest(BaseModel):
+    name: str
+
+
+class AccountDeleteRequest(BaseModel):
+    email_confirmation: str

@@ -67,3 +67,25 @@ class AuthService:
         await db.commit()
         await db.refresh(user)
         return user
+
+    @staticmethod
+    async def update_profile(
+        db: AsyncSession, user_id, name: str
+    ) -> User:
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one()
+        user.name = name
+        await db.commit()
+        await db.refresh(user)
+        return user
+
+    @staticmethod
+    async def delete_account(
+        db: AsyncSession, user_id, email_confirmation: str
+    ) -> None:
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one()
+        if user.email != email_confirmation:
+            raise ValueError("Email confirmation does not match")
+        await db.delete(user)
+        await db.commit()
