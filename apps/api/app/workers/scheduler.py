@@ -5,8 +5,9 @@ import logging
 import signal
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
-from app.workers import crawl_worker, digest_worker, embedding_worker, expiry_worker, metrics_worker, sla_worker, triangle_worker
+from app.workers import bonus_worker, crawl_worker, digest_worker, embedding_worker, expiry_worker, metrics_worker, sla_worker, triangle_worker
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ def main() -> None:
     scheduler.add_job(triangle_worker.run, "interval", hours=1, id="triangle_worker")
     scheduler.add_job(sla_worker.run, "interval", hours=24, id="sla_worker")
     scheduler.add_job(digest_worker.run, "interval", days=7, id="digest_worker")
+    scheduler.add_job(bonus_worker.run, CronTrigger(day=1), id="bonus_worker")
 
     scheduler.start()
     logger.info("Scheduler started with %d jobs", len(scheduler.get_jobs()))

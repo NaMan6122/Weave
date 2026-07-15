@@ -1,4 +1,5 @@
 from app.workers import (
+    bonus_worker,
     crawl_worker,
     digest_worker,
     embedding_worker,
