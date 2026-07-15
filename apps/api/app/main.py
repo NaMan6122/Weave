@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import auth, billing, credits, domains, links, matching, network, webhooks
+from app.routers import analytics, auth, billing, credits, domains, links, matching, network, notifications, webhooks
 
 app = FastAPI(title="Weave API", version="0.1.0")
 
@@ -22,6 +22,8 @@ app.include_router(links.router, prefix="/api/v1/links", tags=["links"])
 app.include_router(network.router, prefix="/api/v1/network", tags=["network"])
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])
 app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["webhooks"])
+app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["notifications"])
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 
 
 @app.get("/health")
