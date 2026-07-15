@@ -1,43 +1,45 @@
 # Agent Memory
 
 ## Session Summary
-Last Session: 2026-07-15 13:00
-Active Task: NONE — Session Complete
-Last File Touched: SEO_KEYWORD_STRATEGY.md
-Immediate Next Step: All priority tasks complete. Awaiting next task assignment.
+Last Session: 2026-07-15 13:45
+Active Task: NONE — All tasks complete
+Last File Touched: apps/api/app/services/credits.py
+Immediate Next Step: All tasks complete. Awaiting next assignment.
 
 ## Active Task
 NONE
-State: 
+State: COMPLETE
 Started: 
-Last Updated: 2026-07-15 13:00
+Last Updated: 2026-07-15 13:45
 Weight: 
 Spec Reference: 
 
 ## Task Log
-### [2026-07-15 13:00] — T-010: Define SEO Keyword Strategy & Content Clusters
-**Goal:** Define comprehensive SEO keyword strategy, content clusters, and competitor comparison pages for the Weave website.
-**Spec Reference:** PRD.md (marketing), PRD §4 (Pricing), TDD §9 (Deployment)
+### [2026-07-15 13:30] — T-011: DoDo Payment Scaffolding + Remaining Defect Fixes
+**Goal:** Scaffold DoDo payment integration (config, migration, router stubs with 503 graceful degradation), fix remaining defects (bonus worker, webhook worker, low-balance notification).
+**Spec Reference:** spec-010-v1.md (DoDo), spec-003-v1.md (Credits: bonus, low-balance), spec-006-v1.md (Webhooks)
 **Approach:**
-1. Researched primary/secondary/competitor/technical keywords
-2. Designed 3 content hub clusters (AI Link Building, MCP SEO Workflows, Exchange vs Outreach)
-3. Mapped internal linking matrix
-4. Defined structured data schemas
-5. Created technical SEO checklist and KPI targets
+1. DoDo scaffolding: config.py, billing.py rewrite, user model rename, DB migration, frontend schema update
+2. Created bonus_worker.py for monthly plan bonuses (spec-003 §3)
+3. Created webhook_worker.py for HMAC-signed webhook dispatch with retry (D-008)
+4. Added low-balance notification in spend_credits (D-005)
+5. Updated all exports, scheduler, .env.example, CONTEXT.md
 **Checklist:**
-  - [x] Primary keywords (6 high-intent terms)
-  - [x] Secondary keywords (8 long-tail conversion terms)
-  - [x] Competitor comparison keywords (6 pages)
-  - [x] Technical/developer keywords (6 terms)
-  - [x] 3 content clusters with 15 spoke pages
-  - [x] Internal linking matrix (12 priority links)
-  - [x] Schema.org structured data (SoftwareApplication, ProductComparison, BlogPosting)
-  - [x] Technical SEO checklist (10 items)
-  - [x] KPI targets (3/6/12 months)
-**Outcome:** SEO_KEYWORD_STRATEGY.md created with complete strategy
-**Test Evidence:** Document complete with all sections
-**Blockers:** NONE
-**Rollback:** Delete SEO_KEYWORD_STRATEGY.md
+  - [x] Config: stripe_* → dodo_* vars
+  - [x] Billing router: rewritten for DoDo stubs (checkout, webhook, portal, plans)
+  - [x] User model: stripe_customer_id → dodo_customer_id
+  - [x] Migration: c5d9e4f6a7b8_rename_stripe_to_dodo_customer_id.py
+  - [x] Frontend schema: stripeCustomerId → dodoCustomerId
+  - [x] .env.example updated
+  - [x] CONTEXT.md updated
+  - [x] Bonus worker created + scheduled (CronTrigger day=1)
+  - [x] Webhook dispatcher worker created (HMAC signing, 3 retry attempts)
+  - [x] Low-balance notification fires webhook when balance < 10
+  - [x] Full test suite (33/33 passed)
+**Outcome:** DoDo payments scaffolded with 503 graceful fallback. Bonus worker distributes plan bonuses monthly. Webhook worker dispatches signed events with retry. Low-balance notification integrated.
+**Test Evidence:** 33/33 tests pass. All new workers import successfully.
+**Blockers:** DoDo API docs needed for full integration (checkout/webhook endpoints)
+**Rollback:** Revert config.py, billing.py, user model, migration, schema.ts
 
 ## Task Log
 ### [2026-07-15 12:30] — T-009: Audit & Complete Background Workers (7 workers)

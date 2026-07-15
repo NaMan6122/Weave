@@ -16,7 +16,7 @@ packages/mcp-server/ — TypeScript MCP server (stdio transport)
 - **Embeddings:** OpenAI `text-embedding-3-small` (384 dims via `dimensions` param), hash-projection fallback when no API key
 - **Workers:** APScheduler — crawl, SLA, triangle, expiry, metrics, digest
 - **Email:** Resend API
-- **Payments:** Stripe (stubs only — graceful 503 when keys not set)
+- **Payments:** DoDo Payments (stubs only — graceful 503 when keys not set)
 
 ## Key Design Decisions
 
@@ -42,7 +42,7 @@ packages/mcp-server/ — TypeScript MCP server (stdio transport)
 | Moz (free tier) | `MOZ_API_KEY`                                 | Domain Authority, spam score     |
 | DataForSEO      | `DATAFORSEO_LOGIN` + `DATAFORSEO_PASSWORD`    | Organic traffic, DR estimates    |
 | Resend          | `RESEND_API_KEY`                              | Weekly digest emails             |
-| Stripe          | `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` | Payments (Phase 2)               |
+| DoDo Payments | `DODO_API_KEY` + `DODO_WEBHOOK_SECRET` | Payments (scaffolded)        |
 
 ## Seed Data
 
@@ -50,7 +50,7 @@ packages/mcp-server/ — TypeScript MCP server (stdio transport)
 
 ## Known Gaps / Future Work
 
-- **Stripe integration:** Stubs return 503 until keys are configured
+- **DoDo Payments:** Scaffolded — 503 until keys are configured
 - **A-B-C triangulation:** Service exists but not fully wired to PRD graph traversal spec
 - **Webhooks:** Stubbed, not implemented
 - **Real metrics API calls:** Moz/DataForSEO return empty when keys aren't set (graceful degradation)
