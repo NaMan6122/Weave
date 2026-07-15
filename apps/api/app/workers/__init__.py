@@ -8,4 +8,5 @@ from app.workers import (
     sla_worker,
     scheduler,
     triangle_worker,
+    webhook_worker,
 )
