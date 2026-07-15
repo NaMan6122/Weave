@@ -17,7 +17,7 @@ export const users = pgTable("users", {
   name: text("name"),
   avatarUrl: text("avatar_url"),
   plan: text("plan").notNull().default("free"),
-  stripeCustomerId: text("stripe_customer_id"),
+  dodoCustomerId: text("dodo_customer_id"),
   apiKey: text("api_key").unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

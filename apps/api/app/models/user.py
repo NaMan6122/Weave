@@ -11,5 +11,5 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     name: Mapped[str | None] = mapped_column(String(255))
     avatar_url: Mapped[str | None] = mapped_column(String(512))
     plan: Mapped[str] = mapped_column(String(50), default="free")
-    stripe_customer_id: Mapped[str | None] = mapped_column(String(255))
+    dodo_customer_id: Mapped[str | None] = mapped_column(String(255))
     api_key: Mapped[str | None] = mapped_column(String(255), unique=True)
