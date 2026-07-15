@@ -13,6 +13,7 @@ from app.models.domain import Domain
 from app.models.link import Link, Triangle
 from app.models.page import Page
 from app.services.credits import CreditService
+from app.services.notification import NotificationService
 from app.services.triangulation import TriangulationService
 
 USER_AGENTS = [
@@ -135,6 +136,25 @@ class LinkValidatorService:
 
         # Three-strikes check on the source domain
         await LinkValidatorService._check_three_strikes(db, link.source_domain_id, now)
+
+        if new_status == "removed":
+            target_domain_result = await db.execute(
+                select(Domain).where(Domain.id == link.target_domain_id)
+            )
+            target_domain = target_domain_result.scalar_one_or_none()
+            source_domain_for_name = await db.execute(
+                select(Domain).where(Domain.id == link.source_domain_id)
+            )
+            source_domain_for_notification = source_domain_for_name.scalar_one_or_none()
+            if target_domain and source_domain_for_notification:
+                await NotificationService.create(
+                    db,
+                    target_domain.user_id,
+                    "link_removed",
+                    "Link removed",
+                    f"Your backlink on {source_domain_for_notification.domain} was removed.",
+                    {"link_id": str(link.id), "domain": source_domain_for_notification.domain},
+                )
 
     @staticmethod
     async def _check_three_strikes(

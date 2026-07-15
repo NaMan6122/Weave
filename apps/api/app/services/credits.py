@@ -141,15 +141,32 @@ class CreditService:
         # Low balance notification (spec-003 §4)
         if account.balance < LOW_BALANCE_THRESHOLD:
             import asyncio
-            db_copy = db
+            domain_id_copy = domain_id
+            balance_copy = account.balance
             async def _fire_low_balance():
                 from app.workers.webhook_worker import run_credits_low
                 await run_credits_low({
-                    "domain_id": str(domain_id),
-                    "balance": float(account.balance),
+                    "domain_id": str(domain_id_copy),
+                    "balance": float(balance_copy),
                     "threshold": float(LOW_BALANCE_THRESHOLD),
                 })
             asyncio.create_task(_fire_low_balance())
+
+            from app.models.domain import Domain
+            from app.services.notification import NotificationService
+            domain_result = await db.execute(
+                select(Domain).where(Domain.id == domain_id)
+            )
+            domain = domain_result.scalar_one_or_none()
+            if domain:
+                await NotificationService.create(
+                    db,
+                    domain.user_id,
+                    "credits_low",
+                    "Low credit balance",
+                    f"Your credit balance on {domain.domain} dropped below 10.",
+                    {"domain_id": str(domain_id), "balance": str(account.balance)},
+                )
 
         return txn
 

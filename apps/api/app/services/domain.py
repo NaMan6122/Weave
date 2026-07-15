@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.credit import CreditAccount
 from app.models.domain import Domain
+from app.services.notification import NotificationService
 
 
 class DomainService:
@@ -244,6 +245,17 @@ class DomainService:
 
         await db.commit()
         await db.refresh(domain)
+
+        status_label = "approved" if domain.vetting_status == "approved" else "rejected"
+        await NotificationService.create(
+            db,
+            domain.user_id,
+            "domain_vetted",
+            f"Domain vetting {status_label}",
+            f"{domain.domain} has been {status_label}." + (f" Reason: {domain.rejection_reason}" if domain.rejection_reason else ""),
+            {"domain_id": str(domain.id), "domain": domain.domain, "status": status_label},
+        )
+
         return domain
 
     # --- List / Get / Delete ----------------------------------------------

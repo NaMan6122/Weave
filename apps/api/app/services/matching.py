@@ -17,6 +17,7 @@ from app.schemas.link import (
 from app.services.credits import CreditService
 from app.services.embeddings import EmbeddingService
 from app.services.niche_taxonomy import niche_similarity
+from app.services.notification import NotificationService
 
 # Scoring weights (spec-004)
 W_SEMANTIC = 0.50
@@ -388,6 +389,15 @@ class MatchingService:
             triangle = await TriangulationService.form_triangle(db, source_domain_id, target_domain_id)
             if triangle is not None:
                 await TriangulationService.assign_link_to_triangle(db, link.id, triangle.id, "ab")
+
+        await NotificationService.create(
+            db,
+            target_domain.user_id,
+            "link_placed",
+            "New backlink",
+            f"{source_domain.domain} placed a backlink to {target_domain.domain}.",
+            {"link_id": str(link.id), "source_domain": source_domain.domain},
+        )
 
         return link
 
